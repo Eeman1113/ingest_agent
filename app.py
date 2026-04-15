@@ -50,6 +50,48 @@ def load_rag():
     return RAGEngine("data/ingest.txt")
 
 
+_FOLLOWUP_WORDS = {
+    "more", "that", "this", "those", "these", "above", "previous", "also",
+    "else", "other", "further", "detail", "elaborate", "expand", "explain",
+    "again", "same", "it", "them", "its", "deeper", "continue", "meaning",
+}
+_STOP_WORDS = {
+    "the", "what", "how", "does", "can", "will", "are", "was", "for", "and",
+    "but", "not", "you", "about", "is", "do", "tell", "me", "show", "give",
+    "would", "could", "should", "have", "has", "been", "with", "from",
+}
+
+
+def _build_search_query(prompt: str, messages: list) -> str:
+    """Combine with recent history only if the current question is a follow-up."""
+    import re
+
+    recent_user_msgs = [
+        m["content"] for m in messages[-5:-1] if m["role"] == "user"
+    ]
+    if not recent_user_msgs:
+        return prompt
+
+    current_words = set(re.findall(r"[a-zA-Z]{3,}", prompt.lower())) - _STOP_WORDS
+
+    # Short vague queries like "tell me more" or "explain that" → follow-up
+    is_followup = bool(current_words & _FOLLOWUP_WORDS) and len(current_words) <= 6
+
+    # Check keyword overlap with recent messages
+    if not is_followup:
+        for msg in recent_user_msgs[-2:]:
+            prev_words = set(re.findall(r"[a-zA-Z]{3,}", msg.lower())) - _STOP_WORDS
+            if current_words and prev_words:
+                overlap = len(current_words & prev_words) / max(len(current_words), 1)
+                if overlap >= 0.25:
+                    is_followup = True
+                    break
+
+    if is_followup:
+        return " ".join(recent_user_msgs[-2:] + [prompt])
+    return prompt
+
+
 def stream_chat(messages: list, model: str, api_key: str):
     resp = requests.post(
         OPENROUTER_URL,
@@ -137,12 +179,8 @@ if prompt := st.chat_input("Ask anything about the Red Dog Mailer project..."):
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # Build conversation-aware search query
-    # Pulls keywords from recent messages so "tell me more about that" works
-    recent_user_msgs = [
-        m["content"] for m in st.session_state.messages[-5:-1] if m["role"] == "user"
-    ]
-    search_query = " ".join(recent_user_msgs[-2:] + [prompt])
+    # Build conversation-aware search query — only combines if related
+    search_query = _build_search_query(prompt, st.session_state.messages)
 
     # Retrieve
     with st.spinner("Searching codebase..."):
