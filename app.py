@@ -194,8 +194,10 @@ if prompt := st.chat_input("Ask anything about the Red Dog Mailer project..."):
 
     # Build LLM messages — trim dir tree for token budget
     dir_tree_trimmed = rag.dir_tree[:4000]
-    sys_msg = SYSTEM_PROMPT.format(
-        dir_tree=dir_tree_trimmed, summary=rag.get_summary(), context=context
+    sys_msg = (
+        SYSTEM_PROMPT.replace("{dir_tree}", dir_tree_trimmed)
+        .replace("{summary}", rag.get_summary())
+        .replace("{context}", context)
     )
 
     # Keep last 6 conversation turns for continuity
