@@ -50,45 +50,49 @@ def load_rag():
     return RAGEngine("data/ingest.txt")
 
 
-_FOLLOWUP_WORDS = {
-    "more", "that", "this", "those", "these", "above", "previous", "also",
-    "else", "other", "further", "detail", "elaborate", "expand", "explain",
-    "again", "same", "it", "them", "its", "deeper", "continue", "meaning",
-}
-_STOP_WORDS = {
-    "the", "what", "how", "does", "can", "will", "are", "was", "for", "and",
-    "but", "not", "you", "about", "is", "do", "tell", "me", "show", "give",
-    "would", "could", "should", "have", "has", "been", "with", "from",
-}
-
-
-def _build_search_query(prompt: str, messages: list) -> str:
-    """Combine with recent history only if the current question is a follow-up."""
-    import re
-
-    recent_user_msgs = [
-        m["content"] for m in messages[-5:-1] if m["role"] == "user"
-    ]
-    if not recent_user_msgs:
+def _rewrite_query(prompt: str, messages: list, api_key: str) -> str:
+    """Use LLM to rewrite the query as a standalone search query using conversation context."""
+    recent = [m for m in messages[-5:-1]]
+    if not recent:
         return prompt
 
-    current_words = set(re.findall(r"[a-zA-Z]{3,}", prompt.lower())) - _STOP_WORDS
+    history = "\n".join(f"{m['role']}: {m['content']}" for m in recent[-4:])
 
-    # Short vague queries like "tell me more" or "explain that" → follow-up
-    is_followup = bool(current_words & _FOLLOWUP_WORDS) and len(current_words) <= 6
-
-    # Check keyword overlap with recent messages
-    if not is_followup:
-        for msg in recent_user_msgs[-2:]:
-            prev_words = set(re.findall(r"[a-zA-Z]{3,}", msg.lower())) - _STOP_WORDS
-            if current_words and prev_words:
-                overlap = len(current_words & prev_words) / max(len(current_words), 1)
-                if overlap >= 0.25:
-                    is_followup = True
-                    break
-
-    if is_followup:
-        return " ".join(recent_user_msgs[-2:] + [prompt])
+    try:
+        resp = requests.post(
+            OPENROUTER_URL,
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": MODEL_ID,
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": (
+                            "You rewrite user queries for a codebase search engine. "
+                            "Given the conversation history and the latest message, output ONLY a standalone search query that captures the user's full intent.\n"
+                            "Rules:\n"
+                            "- If the latest message is a follow-up (e.g. 'tell me more', 'how does that work', 'explain the scoring part'), rewrite it into a complete query using context from the history.\n"
+                            "- If the latest message is unrelated to the history (new topic, greeting, or completely different question), return it exactly as-is.\n"
+                            "- Output ONLY the rewritten query. No explanation, no quotes, nothing else."
+                        ),
+                    },
+                    {
+                        "role": "user",
+                        "content": f"Conversation:\n{history}\n\nLatest message: {prompt}",
+                    },
+                ],
+                "temperature": 0,
+                "max_tokens": 150,
+            },
+            timeout=10,
+        )
+        if resp.ok:
+            return resp.json()["choices"][0]["message"]["content"].strip()
+    except Exception:
+        pass
     return prompt
 
 
@@ -179,8 +183,8 @@ if prompt := st.chat_input("Ask anything about the Red Dog Mailer project..."):
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # Build conversation-aware search query — only combines if related
-    search_query = _build_search_query(prompt, st.session_state.messages)
+    # LLM rewrites the query into a standalone search query using conversation context
+    search_query = _rewrite_query(prompt, st.session_state.messages, api_key)
 
     # Retrieve
     with st.spinner("Searching codebase..."):
