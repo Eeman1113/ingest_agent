@@ -7,12 +7,7 @@ from rag import RAGEngine
 
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
-MODELS = {
-    "Gemini 2.0 Flash (cheapest)": "google/gemini-2.0-flash-001",
-    "Llama 3.1 70B": "meta-llama/llama-3.1-70b-instruct",
-    "Claude 3.5 Haiku": "anthropic/claude-3.5-haiku",
-    "DeepSeek V3": "deepseek/deepseek-chat-v3-0324",
-}
+MODEL_ID = "google/gemini-2.0-flash-001"
 
 SYSTEM_PROMPT = """You are a senior technical consultant with deep expertise in the **Red Dog Mailer** codebase — an AI-powered freight brokerage platform built for Red Dog Logistics.
 
@@ -107,9 +102,6 @@ with st.sidebar:
     st.caption("AI Project Agent")
     st.divider()
 
-    model_label = st.selectbox("Model", list(MODELS.keys()), index=0)
-    model_id = MODELS[model_label]
-
     top_k = st.slider("Sources to retrieve", 4, 25, 15)
     st.divider()
 
@@ -163,7 +155,7 @@ if prompt := st.chat_input("Ask anything about the Red Dog Mailer project..."):
     # Stream response
     with st.chat_message("assistant"):
         try:
-            full_response = st.write_stream(stream_chat(llm_messages, model_id, api_key))
+            full_response = st.write_stream(stream_chat(llm_messages, MODEL_ID, api_key))
         except requests.exceptions.HTTPError as e:
             full_response = f"API error: {e.response.status_code} — {e.response.text}"
             st.error(full_response)
