@@ -84,19 +84,25 @@ def stream_chat(messages: list, model: str, api_key: str):
 st.set_page_config(
     page_title="Red Dog Mailer — Project Agent",
     page_icon="🐕",
-    layout="wide",
+    layout="centered",
 )
 
 st.markdown(
     """
 <style>
-    .block-container { max-width: 900px; }
-    .stChatMessage { border-radius: 12px; overflow-x: auto; }
+    .block-container { max-width: 800px; padding: 1rem 2rem; }
     div[data-testid="stExpander"] { border: 1px solid #333; border-radius: 8px; }
-    .stChatMessage pre { white-space: pre-wrap; word-wrap: break-word; }
-    .stChatMessage code { white-space: pre-wrap; word-wrap: break-word; }
-    .stChatMessage p { word-wrap: break-word; overflow-wrap: break-word; }
-    .stMarkdown { max-width: 100%; overflow-x: auto; }
+    pre, code {
+        white-space: pre-wrap !important;
+        word-wrap: break-word !important;
+        word-break: break-word !important;
+        overflow: hidden !important;
+    }
+    .stChatMessage { overflow: hidden !important; }
+    .stChatMessage div { overflow: hidden !important; }
+    .stMarkdown { overflow: hidden !important; }
+    * { scrollbar-width: none; -ms-overflow-style: none; }
+    *::-webkit-scrollbar { display: none; }
 </style>
 """,
     unsafe_allow_html=True,
