@@ -277,6 +277,55 @@ class RAGEngine:
 
         return results
 
+    def get_summary(self) -> str:
+        """Pre-computed codebase summary for aggregate questions."""
+        if hasattr(self, "_summary"):
+            return self._summary
+
+        all_paths = list(dict.fromkeys(c.file_path for c in self.chunks))
+
+        api_routes = [p for p in all_paths if "/api/" in p and p.endswith("route.ts")]
+        components = [p for p in all_paths if "/components/" in p and p.endswith(".tsx")]
+        pages = [p for p in all_paths if "/app/" in p and p.endswith("page.tsx")]
+        hooks = [p for p in all_paths if "/hooks/" in p]
+        migrations = [p for p in all_paths if "/migrations/" in p and p.endswith(".sql")]
+        lib_modules = [p for p in all_paths if "/lib/" in p and p.endswith(".ts")]
+        docs = [p for p in all_paths if p.endswith(".md")]
+        types = [p for p in all_paths if "/types/" in p]
+
+        lines = [
+            f"CODEBASE STATISTICS:",
+            f"- Total files: {len(all_paths)}",
+            f"- API endpoints (route.ts): {len(api_routes)}",
+            f"- React components (.tsx): {len(components)}",
+            f"- Pages: {len(pages)}",
+            f"- Hooks: {len(hooks)}",
+            f"- Database migrations: {len(migrations)}",
+            f"- Library modules (src/lib): {len(lib_modules)}",
+            f"- Documentation files (.md): {len(docs)}",
+            f"- Type definition files: {len(types)}",
+            f"",
+            f"API ENDPOINTS ({len(api_routes)}):",
+        ]
+        for r in api_routes:
+            # Extract the route path from file path
+            # e.g. src/app/api/emails/classify/route.ts -> /api/emails/classify
+            route = r.split("/api/")[-1].replace("/route.ts", "")
+            lines.append(f"  /api/{route}")
+
+        lines.append(f"")
+        lines.append(f"DATABASE MIGRATIONS ({len(migrations)}):")
+        for m in migrations:
+            lines.append(f"  {m.split('/')[-1]}")
+
+        lines.append(f"")
+        lines.append(f"REACT COMPONENTS ({len(components)}):")
+        for c in components:
+            lines.append(f"  {c.split('/components/')[-1]}")
+
+        self._summary = "\n".join(lines)
+        return self._summary
+
     def get_context(
         self, query: str, top_k: int = 10, max_chars: int = 18000
     ) -> Tuple[str, List[str]]:

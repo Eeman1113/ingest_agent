@@ -37,6 +37,8 @@ Key rules:
 PROJECT DIRECTORY STRUCTURE:
 {dir_tree}
 
+{summary}
+
 RETRIEVED CODE CONTEXT (most relevant files for this query):
 {context}
 """
@@ -192,7 +194,9 @@ if prompt := st.chat_input("Ask anything about the Red Dog Mailer project..."):
 
     # Build LLM messages — trim dir tree for token budget
     dir_tree_trimmed = rag.dir_tree[:4000]
-    sys_msg = SYSTEM_PROMPT.format(dir_tree=dir_tree_trimmed, context=context)
+    sys_msg = SYSTEM_PROMPT.format(
+        dir_tree=dir_tree_trimmed, summary=rag.get_summary(), context=context
+    )
 
     # Keep last 6 conversation turns for continuity
     history = st.session_state.messages[-7:-1]
