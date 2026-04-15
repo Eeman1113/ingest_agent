@@ -88,26 +88,6 @@ st.set_page_config(
     layout="centered",
 )
 
-st.markdown(
-    """
-<style>
-    .block-container { max-width: 800px; padding: 1rem 2rem; }
-    div[data-testid="stExpander"] { border: 1px solid #333; border-radius: 8px; }
-    pre, code {
-        white-space: pre-wrap !important;
-        word-wrap: break-word !important;
-        word-break: break-word !important;
-        overflow-x: hidden !important;
-        max-width: 100% !important;
-    }
-    .stChatMessage p, .stChatMessage li {
-        word-wrap: break-word;
-        overflow-wrap: break-word;
-    }
-</style>
-""",
-    unsafe_allow_html=True,
-)
 
 # Sidebar
 with st.sidebar:
