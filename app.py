@@ -91,8 +91,12 @@ st.markdown(
     """
 <style>
     .block-container { max-width: 900px; }
-    .stChatMessage { border-radius: 12px; }
+    .stChatMessage { border-radius: 12px; overflow-x: auto; }
     div[data-testid="stExpander"] { border: 1px solid #333; border-radius: 8px; }
+    .stChatMessage pre { white-space: pre-wrap; word-wrap: break-word; }
+    .stChatMessage code { white-space: pre-wrap; word-wrap: break-word; }
+    .stChatMessage p { word-wrap: break-word; overflow-wrap: break-word; }
+    .stMarkdown { max-width: 100%; overflow-x: auto; }
 </style>
 """,
     unsafe_allow_html=True,
