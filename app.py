@@ -137,9 +137,16 @@ if prompt := st.chat_input("Ask anything about the Red Dog Mailer project..."):
     with st.chat_message("user"):
         st.markdown(prompt)
 
+    # Build conversation-aware search query
+    # Pulls keywords from recent messages so "tell me more about that" works
+    recent_user_msgs = [
+        m["content"] for m in st.session_state.messages[-5:-1] if m["role"] == "user"
+    ]
+    search_query = " ".join(recent_user_msgs[-2:] + [prompt])
+
     # Retrieve
     with st.spinner("Searching codebase..."):
-        context, sources = rag.get_context(prompt, top_k=top_k)
+        context, sources = rag.get_context(search_query, top_k=top_k)
 
     # Build LLM messages — trim dir tree for token budget
     dir_tree_trimmed = rag.dir_tree[:4000]
