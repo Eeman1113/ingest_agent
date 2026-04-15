@@ -47,8 +47,8 @@ RETRIEVED CODE CONTEXT (most relevant files for this query):
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 
-@st.cache_resource(show_spinner="Indexing codebase (BM25 + TF-IDF hybrid)...")
-def load_rag():
+@st.cache_resource(show_spinner="Indexing codebase...")
+def load_rag(_version=2):
     return RAGEngine("data/ingest.txt")
 
 
